@@ -12,10 +12,17 @@ func promptAndScan(scanner *bufio.Scanner) bool {
 }
 
 func main() {
+	fmt.Println("Welcome to the Pokedex!")
+	commands := getCommands()
 	scanner := bufio.NewScanner(os.Stdin)
 	for promptAndScan(scanner) {
 		input := scanner.Text()
 		tok_input := cleanInput(input)
-		fmt.Printf("Your command was: %s\n", tok_input[0])
+		action, exists := commands[tok_input[0]]
+		if !exists {
+			fmt.Println("Unknown command")
+		} else {
+			action.callback()
+		}
 	}
 }
