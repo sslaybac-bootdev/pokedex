@@ -40,6 +40,11 @@ func getCommands() map[string]cliCommand {
 			description: "Prints statistics for the target pokemon",
 			callback:    commandInspect,
 		},
+		"pokedex": {
+			name:        "pokedex",
+			description: "Lists all pokemon caught so far",
+			callback:    commandPokedex,
+		},
 		"help": {
 			name:        "help",
 			description: "Displays a help message",
@@ -142,7 +147,13 @@ func commandInspect(cfg *config, args ...string) error {
 
 	return nil
 }
-
+func commandPokedex(cfg *config, args ...string) error {
+	fmt.Println("Your pokedex:")
+	for key := range cfg.pokedex {
+		fmt.Printf(" - %s\n", key)
+	}
+	return nil
+}
 func commandHelp(cfg *config, args ...string) error {
 	commands := getCommands()
 	for _, com := range commands {
@@ -152,10 +163,6 @@ func commandHelp(cfg *config, args ...string) error {
 }
 
 func commandExit(cfg *config, args ...string) error {
-	fmt.Println("Pokedex contains:")
-	for key := range cfg.pokedex {
-		fmt.Printf("\t%s\n", key)
-	}
 	fmt.Println("Closing the Pokedex... Goodbye!")
 	os.Exit(0)
 	return nil
