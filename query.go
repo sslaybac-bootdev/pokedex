@@ -13,6 +13,7 @@ type config struct {
 	Next     *string
 	Previous *string
 	cache    *pokecache.Cache
+	pokedex  map[string]Pokemon
 }
 
 type LocationArea struct {
@@ -36,6 +37,11 @@ type LocationSpecificResponse struct {
 	} `json:"pokemon_encounters"`
 }
 
+type Pokemon struct {
+	Name           string `json:"name"`
+	BaseExperience int    `json:"base_experience"`
+}
+
 func (l *LocationAreaResponse) display() {
 	for _, r := range l.Results {
 		fmt.Printf("%s\n", r.Name)
@@ -53,12 +59,13 @@ func (l *LocationSpecificResponse) display() {
 func getDefaultConfig() config {
 	default_url := "https://pokeapi.co/api/v2/location-area"
 	cache := pokecache.NewCache(5 * time.Second)
+	dex := make(map[string]Pokemon, 0)
 	return config{
 		Next:     &default_url,
 		Previous: nil,
 		cache:    cache,
+		pokedex:  dex,
 	}
-
 }
 
 func query(url string) ([]byte, error) {
@@ -77,7 +84,7 @@ func query(url string) ([]byte, error) {
 	defer res.Body.Close()
 
 	if res.StatusCode > 299 {
-		return nil, fmt.Errorf("bad status code: %d", res.StatusCode)
+		return nil, fmt.Errorf("bad status code: %d (url: %s)", res.StatusCode, url)
 	}
 
 	body, err := io.ReadAll(res.Body)
@@ -112,6 +119,18 @@ func getEncounters(url string, cache *pokecache.Cache) (*LocationSpecificRespons
 	return parse_encounters(body)
 }
 
+func getPokemon(url string, cache *pokecache.Cache) (*Pokemon, error) {
+	data, ok := cache.Get(url)
+	if ok {
+		return parse_pokemon(data)
+	}
+	body, err := query(url)
+	if err != nil {
+		return nil, err
+	}
+	return parse_pokemon(body)
+}
+
 func parse_locations(data []byte) (*LocationAreaResponse, error) {
 	var locations LocationAreaResponse
 
@@ -132,4 +151,15 @@ func parse_encounters(data []byte) (*LocationSpecificResponse, error) {
 	}
 
 	return &encounters, nil
+}
+
+func parse_pokemon(data []byte) (*Pokemon, error) {
+	var pokemon Pokemon
+
+	err := json.Unmarshal(data, &pokemon)
+	if err != nil {
+		return nil, err
+	}
+
+	return &pokemon, nil
 }

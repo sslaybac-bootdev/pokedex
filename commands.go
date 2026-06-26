@@ -3,6 +3,7 @@ package main
 import (
 	"errors"
 	"fmt"
+	"math/rand"
 	"os"
 )
 
@@ -28,6 +29,11 @@ func getCommands() map[string]cliCommand {
 			name:        "explore <location_name>",
 			description: "Displays a list of pokemon that can be encountered at the target location",
 			callback:    commandExplore,
+		},
+		"catch": {
+			name:        "catch <pokemon>",
+			description: "Attempts to capture the target pokemon",
+			callback:    commandCatch,
 		},
 		"help": {
 			name:        "help",
@@ -88,6 +94,28 @@ func commandExplore(cfg *config, args ...string) error {
 	return nil
 }
 
+func commandCatch(cfg *config, args ...string) error {
+	base_url := "https://pokeapi.co/api/v2/pokemon/"
+	targetPokemon := args[0]
+	full_url := base_url + targetPokemon
+	pokemonEntry, err := getPokemon(full_url, cfg.cache)
+	if err != nil {
+		return err
+	}
+	fmt.Printf("Throwing a Pokeball at %s...\n", pokemonEntry.Name)
+
+	//chance to catch is 100/(100+baseExperience)
+	catch_chance := 99 + pokemonEntry.BaseExperience
+	catch_roll := rand.Intn(catch_chance)
+	if catch_roll < 100 {
+		fmt.Printf("%s escaped!\n", pokemonEntry.Name)
+	} else {
+		fmt.Printf("%s was caught!\n", pokemonEntry.Name)
+		cfg.pokedex[pokemonEntry.Name] = *pokemonEntry
+	}
+	return nil
+}
+
 func commandHelp(cfg *config, args ...string) error {
 	commands := getCommands()
 	for _, com := range commands {
@@ -97,6 +125,10 @@ func commandHelp(cfg *config, args ...string) error {
 }
 
 func commandExit(cfg *config, args ...string) error {
+	fmt.Println("Pokedex contains:")
+	for key := range cfg.pokedex {
+		fmt.Printf("\t%s\n", key)
+	}
 	fmt.Println("Closing the Pokedex... Goodbye!")
 	os.Exit(0)
 	return nil
