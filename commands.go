@@ -42,7 +42,7 @@ func commandMap(cfg *config) error {
 	if cfg.Next == nil {
 		return errors.New("you're on the last page.")
 	} else {
-		locs, err := getLocations(*cfg.Next)
+		locs, err := getLocations(*cfg.Next, cfg.cache)
 		if err != nil {
 			return err
 		}
@@ -58,7 +58,7 @@ func commandMapb(cfg *config) error {
 	if cfg.Previous == nil {
 		return errors.New("you're on the first page.")
 	} else {
-		locs, err := getLocations(*cfg.Previous)
+		locs, err := getLocations(*cfg.Previous, cfg.cache)
 		if err != nil {
 			return err
 		}

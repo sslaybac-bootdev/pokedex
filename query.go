@@ -5,12 +5,14 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"pokedex/internal/pokecache"
 	"time"
 )
 
 type config struct {
 	Next     *string
 	Previous *string
+	cache    *pokecache.Cache
 }
 
 type LocationArea struct {
@@ -25,7 +27,12 @@ type LocationAreaResponse struct {
 	Results  []LocationArea `json:"results"`
 }
 
-func (l LocationAreaResponse) display() {
+type Pokemon struct {
+	name *string `json:name`
+	url  *string `json:url`
+}
+
+func (l *LocationAreaResponse) display() {
 	for _, r := range l.Results {
 		fmt.Printf("%s\n", r.Name)
 	}
@@ -34,14 +41,20 @@ func (l LocationAreaResponse) display() {
 
 func getDefaultConfig() config {
 	default_url := "https://pokeapi.co/api/v2/location-area"
+	cache := pokecache.NewCache(5 * time.Second)
 	return config{
 		Next:     &default_url,
 		Previous: nil,
+		cache:    cache,
 	}
 
 }
 
-func getLocations(url string) (*LocationAreaResponse, error) {
+func getLocations(url string, cache *pokecache.Cache) (*LocationAreaResponse, error) {
+	data, ok := cache.Get(url)
+	if ok {
+		return parse_locations(data)
+	}
 	client := &http.Client{
 		Timeout: 5 * time.Second,
 	}
@@ -74,4 +87,15 @@ func getLocations(url string) (*LocationAreaResponse, error) {
 
 	return &locations, nil
 
+}
+
+func parse_locations(data []byte) (*LocationAreaResponse, error) {
+	var locations LocationAreaResponse
+
+	err := json.Unmarshal(data, &locations)
+	if err != nil {
+		return nil, err
+	}
+
+	return &locations, nil
 }
