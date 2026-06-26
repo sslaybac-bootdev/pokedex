@@ -24,7 +24,7 @@ func main() {
 		if !exists {
 			fmt.Println("Unknown command")
 		} else {
-			err := action.callback(&cfg)
+			err := action.callback(&cfg, tok_input[1:]...)
 			if err != nil {
 				fmt.Printf("Error: %v\n", err)
 			}

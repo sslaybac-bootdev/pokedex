@@ -27,14 +27,25 @@ type LocationAreaResponse struct {
 	Results  []LocationArea `json:"results"`
 }
 
-type Pokemon struct {
-	name *string `json:name`
-	url  *string `json:url`
+type LocationSpecificResponse struct {
+	PokemonEncounters []struct {
+		Pokemon struct {
+			Name string `json:"name"`
+			Url  string `json:"url"`
+		} `json:"pokemon"`
+	} `json:"pokemon_encounters"`
 }
 
 func (l *LocationAreaResponse) display() {
 	for _, r := range l.Results {
 		fmt.Printf("%s\n", r.Name)
+	}
+
+}
+
+func (l *LocationSpecificResponse) display() {
+	for _, r := range l.PokemonEncounters {
+		fmt.Printf("%s\n", r.Pokemon.Name)
 	}
 
 }
@@ -50,11 +61,7 @@ func getDefaultConfig() config {
 
 }
 
-func getLocations(url string, cache *pokecache.Cache) (*LocationAreaResponse, error) {
-	data, ok := cache.Get(url)
-	if ok {
-		return parse_locations(data)
-	}
+func query(url string) ([]byte, error) {
 	client := &http.Client{
 		Timeout: 5 * time.Second,
 	}
@@ -78,15 +85,31 @@ func getLocations(url string, cache *pokecache.Cache) (*LocationAreaResponse, er
 		return nil, err
 	}
 
-	var locations LocationAreaResponse
+	return body, nil
+}
 
-	err = json.Unmarshal(body, &locations)
+func getLocations(url string, cache *pokecache.Cache) (*LocationAreaResponse, error) {
+	data, ok := cache.Get(url)
+	if ok {
+		return parse_locations(data)
+	}
+	body, err := query(url)
 	if err != nil {
 		return nil, err
 	}
+	return parse_locations(body)
+}
 
-	return &locations, nil
-
+func getEncounters(url string, cache *pokecache.Cache) (*LocationSpecificResponse, error) {
+	data, ok := cache.Get(url)
+	if ok {
+		return parse_encounters(data)
+	}
+	body, err := query(url)
+	if err != nil {
+		return nil, err
+	}
+	return parse_encounters(body)
 }
 
 func parse_locations(data []byte) (*LocationAreaResponse, error) {
@@ -98,4 +121,15 @@ func parse_locations(data []byte) (*LocationAreaResponse, error) {
 	}
 
 	return &locations, nil
+}
+
+func parse_encounters(data []byte) (*LocationSpecificResponse, error) {
+	var encounters LocationSpecificResponse
+
+	err := json.Unmarshal(data, &encounters)
+	if err != nil {
+		return nil, err
+	}
+
+	return &encounters, nil
 }
